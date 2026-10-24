@@ -3,7 +3,18 @@ import { handleCallback, isLoggedIn, login, logout, onAuthLost, AuthError } from
 import { parse, stripWakeWord, type Command } from './commands';
 import { isSpeechSupported, VoiceListener } from './speech';
 import * as spotify from './spotify';
+import {
+  applyTheme,
+  findTheme,
+  getSavedPhoto,
+  getSavedTheme,
+  savePhoto,
+  saveTheme,
+  THEMES,
+  type Theme,
+} from './themes';
 import * as ui from './ui';
+import * as visuals from './visuals';
 import { keepScreenOn } from './wakelock';
 
 const LANG_KEY = 'spotidvc.lang';
@@ -22,6 +33,14 @@ let pollTimer: ReturnType<typeof setInterval> | undefined;
 let busy = false;
 
 const lang = localStorage.getItem(LANG_KEY) ?? 'es-US';
+
+function setTheme(theme: Theme): void {
+  saveTheme(theme);
+  applyTheme(theme);
+  const photo = getSavedPhoto();
+  visuals.setBackdrop(theme.backdrop, photo);
+  ui.renderThemes(THEMES, theme.id, photo);
+}
 
 const listener = new VoiceListener(
   {
@@ -90,6 +109,7 @@ async function execute(command: Command): Promise<void> {
       ui.reply(`${command === 'volumeUp' ? '🔊' : '🔉'} Volumen ${volume}%`);
     } else {
       await spotify[command]();
+      if (command === 'play' || command === 'pause') visuals.setPlaying(command === 'play');
       ui.reply(FEEDBACK[command]);
     }
     // Spotify tarda un instante en reflejar el cambio.
@@ -114,7 +134,9 @@ function handleError(error: unknown): void {
 
 async function refreshPlayback(): Promise<void> {
   try {
-    ui.renderPlayback(await spotify.getPlayback());
+    const state = await spotify.getPlayback();
+    ui.renderPlayback(state);
+    visuals.setPlaying(!!state?.is_playing);
   } catch (error) {
     if (error instanceof spotify.SpotifyError && error.kind === 'auth') handleError(error);
     // Otros errores del sondeo no molestan al usuario: se reintenta en el próximo ciclo.
@@ -164,6 +186,7 @@ function startSession(): void {
 function endSession(message = ''): void {
   listener.stop();
   stopPolling();
+  visuals.setPlaying(false);
   logout();
   ui.showLogin(message);
 }
@@ -198,6 +221,17 @@ ui.bind({
   onLogout() {
     endSession();
   },
+  onThemeChange(id) {
+    setTheme(findTheme(id));
+  },
+  onPhotoPicked(file) {
+    savePhoto(file)
+      .then(() => setTheme(findTheme('foto')))
+      .catch((error: unknown) => {
+        console.error(error);
+        ui.reply('⚠ No pude usar esa imagen. Probá con otra.', 'error');
+      });
+  },
 });
 
 onAuthLost(() => endSession('Tu sesión venció. Conectá Spotify de nuevo.'));
@@ -211,6 +245,8 @@ document.addEventListener('visibilitychange', () => {
 
 async function boot(): Promise<void> {
   ui.setLang(lang);
+  visuals.startVisuals();
+  setTheme(getSavedTheme());
   if (!isSpeechSupported()) {
     ui.showSpeechWarning(
       'Este navegador no reconoce voz (probá con Chrome o Edge). Los botones funcionan igual.',
@@ -227,12 +263,7 @@ async function boot(): Promise<void> {
     return;
   }
   startSession();
-  ui.reply(
-    callback?.ok
-      ? '👋 ¡Conectado! Tocá el orbe y decí «música play»'
-      : '👋 Hola. Tocá el orbe y decime qué hago',
-    'info',
-  );
+  if (callback?.ok) ui.reply('👋 ¡Conectado! Tocá el orbe y decí «música play»', 'info');
 }
 
 void boot();

@@ -11,6 +11,7 @@
     <title>spotiDVC</title>
   </head>
   <body>
+    <canvas id="backdrop" class="backdrop" aria-hidden="true"></canvas>
     <div class="app">
       <header class="topbar">
         <div class="brand">
@@ -53,6 +54,7 @@
             aria-pressed="false"
             aria-label="Escuchar"
           >
+            <canvas id="orb-waves" class="orb-waves" aria-hidden="true"></canvas>
             <span class="orb-ring"></span><span class="orb-ring"></span
             ><span class="orb-ring"></span>
             <span class="orb-core">
@@ -63,7 +65,7 @@
               </svg>
             </span>
           </button>
-          <p id="status" class="status">Tocá el orbe para que te escuche</p>
+          <p id="status" class="status"></p>
           <p id="reply" class="reply" aria-live="polite"></p>
           <p id="heard" class="heard" aria-live="off"></p>
           <p id="speech-warning" class="warning" hidden></p>
@@ -186,6 +188,15 @@
           <option value="es-MX">Español (México)</option>
           <option value="es-ES">Español (España)</option>
         </select>
+        <span class="sheet-label" id="theme-label">Tema</span>
+        <div
+          id="theme-picker"
+          class="theme-grid"
+          role="radiogroup"
+          aria-labelledby="theme-label"
+        ></div>
+        <p class="sheet-note">Tocá «Tu foto» otra vez para elegir otra imagen.</p>
+        <input id="photo-input" type="file" accept="image/*" hidden />
         <button id="logout-btn" class="secondary-btn" type="button">Desconectar Spotify</button>
         <button class="primary-btn" value="close">Listo</button>
       </form>

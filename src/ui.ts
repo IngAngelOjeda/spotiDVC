@@ -1,5 +1,6 @@
 import type { Command } from './commands';
 import type { Device, PlaybackState } from './spotify';
+import type { Theme } from './themes';
 
 export type OrbState = 'idle' | 'listening' | 'working' | 'ok' | 'error';
 export type ReplyKind = 'ok' | 'error' | 'info';
@@ -12,6 +13,8 @@ export interface UiHandlers {
   onRefreshDevices(): void;
   onLangChange(lang: string): void;
   onLogout(): void;
+  onThemeChange(id: string): void;
+  onPhotoPicked(file: File): void;
 }
 
 const MAX_FEED = 30;
@@ -45,10 +48,13 @@ const el = {
   deviceSelect: $<HTMLSelectElement>('device-select'),
   devicesRefresh: $<HTMLButtonElement>('devices-refresh'),
   feed: $('feed'),
+  themePicker: $('theme-picker'),
+  photoInput: $<HTMLInputElement>('photo-input'),
 };
 
 let orbResetTimer: ReturnType<typeof setTimeout> | undefined;
 let listening = false;
+let themeState = { selected: '', hasPhoto: false };
 
 export function bind(handlers: UiHandlers): void {
   el.loginBtn.addEventListener('click', handlers.onLogin);
@@ -61,6 +67,22 @@ export function bind(handlers: UiHandlers): void {
   });
   el.deviceSelect.addEventListener('change', () => handlers.onDeviceChange(el.deviceSelect.value));
   el.devicesRefresh.addEventListener('click', handlers.onRefreshDevices);
+  el.themePicker.addEventListener('click', (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-theme-id]');
+    const id = button?.dataset.themeId;
+    if (!id) return;
+    // «Tu foto» abre la galería si todavía no hay foto o si ya estaba elegida (para cambiarla).
+    if (id === 'foto' && (!themeState.hasPhoto || themeState.selected === 'foto')) {
+      el.photoInput.click();
+    } else {
+      handlers.onThemeChange(id);
+    }
+  });
+  el.photoInput.addEventListener('change', () => {
+    const file = el.photoInput.files?.[0];
+    el.photoInput.value = '';
+    if (file) handlers.onPhotoPicked(file);
+  });
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((button) => {
     button.addEventListener('click', () => handlers.onAction(button.dataset.action as Command));
   });
@@ -83,13 +105,33 @@ export function setLang(lang: string): void {
   el.langSelect.value = lang;
 }
 
+export function renderThemes(themes: Theme[], selectedId: string, photoUrl: string | null): void {
+  themeState = { selected: selectedId, hasPhoto: !!photoUrl };
+  el.themePicker.replaceChildren(
+    ...themes.map((theme) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'theme-option';
+      button.dataset.themeId = theme.id;
+      button.setAttribute('role', 'radio');
+      button.setAttribute('aria-checked', String(theme.id === selectedId));
+      const swatch = document.createElement('span');
+      swatch.className = 'theme-swatch';
+      swatch.style.background =
+        theme.id === 'foto' && photoUrl ? `center / cover url("${photoUrl}")` : theme.preview;
+      const name = document.createElement('span');
+      name.textContent = theme.name;
+      button.append(swatch, name);
+      return button;
+    }),
+  );
+}
+
 export function setListening(on: boolean): void {
   listening = on;
   el.orb.setAttribute('aria-pressed', String(on));
   el.orb.setAttribute('aria-label', on ? 'Dejar de escuchar' : 'Escuchar');
-  el.status.textContent = on
-    ? 'Te escucho… empezá con «música»'
-    : 'Tocá el orbe para que te escuche';
+  el.status.textContent = on ? 'Te escucho… empezá con «música»' : '';
   setOrb(on ? 'listening' : 'idle');
 }
 

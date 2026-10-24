@@ -9,10 +9,12 @@
   --muted: #9a98b3;
   --accent: #8b5cf6;
   --accent-2: #22d3a6;
+  --accent-alt: #5b5bd6;
+  --accent-deep: #3b1d8f;
   --ok: #22d3a6;
   --error: #ff6b81;
   --info: #a5b4fc;
-  --bubble-user: linear-gradient(135deg, #7c3aed, #5b5bd6);
+  --bubble-user: linear-gradient(135deg, #7c3aed, var(--accent-alt));
   --shadow: 0 10px 40px rgb(0 0 0 / 0.35);
   --radius: 20px;
   font-family:
@@ -39,6 +41,69 @@
     --info: #5b5bd6;
     --shadow: 0 10px 30px rgb(40 20 120 / 0.1);
   }
+}
+
+/* Temas: todos oscuros, con tarjetas más opacas para leerse sobre el fondo animado. */
+:root[data-theme] {
+  color-scheme: dark;
+  --surface: rgb(10 8 22 / 0.45);
+  --surface-strong: rgb(255 255 255 / 0.1);
+  --border: rgb(255 255 255 / 0.12);
+  --text: #f4f3fb;
+  --muted: #b9b7cf;
+  --ok: #22d3a6;
+  --error: #ff6b81;
+  --info: #a5b4fc;
+  --shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+}
+
+:root[data-theme='verde'] {
+  --bg: #050d09;
+  --accent: #1db954;
+  --accent-2: #b8f75d;
+  --accent-alt: #0f9d58;
+  --accent-deep: #0b4d2a;
+  --bubble-user: linear-gradient(135deg, #12813d, #0b5c2e);
+}
+
+:root[data-theme='lava'] {
+  --bg: #120505;
+  --accent: #ff4d2e;
+  --accent-2: #ffb627;
+  --accent-alt: #d7263d;
+  --accent-deep: #6b0f0f;
+  --bubble-user: linear-gradient(135deg, #c62f1c, #8f1d2c);
+}
+
+:root[data-theme='oceano'] {
+  --bg: #03142b;
+  --accent: #1e90ff;
+  --accent-2: #2de2e6;
+  --accent-alt: #0a5d8f;
+  --accent-deep: #062a52;
+  --bubble-user: linear-gradient(135deg, #1565c0, #0a4d8f);
+}
+
+:root[data-theme='retro'] {
+  --bg: #14002b;
+  --accent: #ff2e88;
+  --accent-2: #ffd23f;
+  --accent-alt: #8a2be2;
+  --accent-deep: #3a0066;
+  --bubble-user: linear-gradient(135deg, #c2185b, #7b1fa2);
+}
+
+:root[data-theme='galaxia'] {
+  --bg: #020107;
+  --accent: #7c5cff;
+  --accent-2: #ff7ae6;
+  --accent-alt: #3d5afe;
+  --accent-deep: #1a0b4a;
+  --bubble-user: linear-gradient(135deg, #5b3fd6, #3d2bb0);
+}
+
+:root[data-theme='foto'] {
+  --bg: #0b0b14;
 }
 
 * {
@@ -72,6 +137,20 @@ svg {
   fill: currentColor;
 }
 
+/* Fondo animado del tema, siempre difuminado. Se agranda para que el blur no deje bordes. */
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  display: block;
+  width: 100vw;
+  height: 100lvh;
+  filter: blur(18px) saturate(1.15);
+  transform: scale(1.08);
+  pointer-events: none;
+}
+
 [hidden] {
   display: none !important;
 }
@@ -103,7 +182,7 @@ svg {
   height: 22px;
   border-radius: 50%;
   background: conic-gradient(from 200deg, var(--accent), var(--accent-2), var(--accent));
-  box-shadow: 0 0 16px rgb(139 92 246 / 0.6);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 60%, transparent);
 }
 
 .icon-btn {
@@ -138,7 +217,7 @@ svg {
   place-items: center;
   width: var(--size);
   height: var(--size);
-  margin: 8px 0 16px;
+  margin: calc(var(--size) * 0.2) 0 calc(var(--size) * 0.22);
   padding: 0;
   border: none;
   border-radius: 50%;
@@ -162,7 +241,7 @@ svg {
   background:
     radial-gradient(circle at 30% 25%, rgb(255 255 255 / 0.55), transparent 35%),
     radial-gradient(circle at 70% 80%, var(--accent-2), transparent 55%),
-    radial-gradient(circle at 50% 50%, var(--accent), #3b1d8f);
+    radial-gradient(circle at 50% 50%, var(--accent), var(--accent-deep));
   box-shadow:
     0 0 50px color-mix(in srgb, var(--glow) 55%, transparent),
     inset 0 -10px 30px rgb(0 0 0 / 0.3);
@@ -172,6 +251,16 @@ svg {
     filter 0.3s ease,
     box-shadow 0.3s ease;
   animation: breathe 5s ease-in-out infinite;
+  scale: calc(1 + var(--kick, 0) * 0.06);
+}
+
+/* Ecualizador radial: graves abajo, agudos arriba (dibujado en visuals.ts). */
+.orb-waves {
+  position: absolute;
+  inset: -18%;
+  width: 136%;
+  height: 136%;
+  pointer-events: none;
 }
 
 .orb-core svg {
@@ -240,6 +329,7 @@ svg {
 
 .orb--static {
   --size: 150px;
+  margin: 8px 0 16px;
   pointer-events: none;
 }
 
@@ -481,9 +571,9 @@ svg {
 .ctl--main {
   height: 72px;
   border: none;
-  background: linear-gradient(135deg, var(--accent), #5b5bd6);
+  background: linear-gradient(135deg, var(--accent), var(--accent-alt));
   color: #fff;
-  box-shadow: 0 8px 24px rgb(124 58 237 / 0.4);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 .ctl--main svg {
@@ -662,7 +752,7 @@ select {
   border: none;
   background: linear-gradient(135deg, var(--accent), var(--accent-2));
   color: #fff;
-  box-shadow: 0 8px 24px rgb(124 58 237 / 0.35);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 .secondary-btn {
@@ -697,7 +787,8 @@ select {
   margin: 0 0 4px;
 }
 
-.sheet-body label {
+.sheet-body label,
+.sheet-label {
   color: var(--muted);
   font-size: 0.85rem;
 }
@@ -709,4 +800,37 @@ select {
 .sheet-body .primary-btn,
 .sheet-body .secondary-btn {
   max-width: none;
+}
+
+.sheet-note {
+  margin: -4px 0 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.theme-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 8px;
+}
+
+.theme-option {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--surface-strong);
+  font-size: 0.8rem;
+}
+
+.theme-option[aria-checked='true'] {
+  border-color: var(--accent);
+}
+
+.theme-swatch {
+  display: block;
+  height: 48px;
+  border-radius: 10px;
 }
