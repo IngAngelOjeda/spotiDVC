@@ -35,7 +35,6 @@ const el = {
   langSelect: $<HTMLSelectElement>('lang-select'),
   logoutBtn: $<HTMLButtonElement>('logout-btn'),
   orb: $<HTMLButtonElement>('orb'),
-  status: $('status'),
   reply: $('reply'),
   heard: $('heard'),
   speechWarning: $('speech-warning'),
@@ -48,15 +47,18 @@ const el = {
   deviceSelect: $<HTMLSelectElement>('device-select'),
   devicesRefresh: $<HTMLButtonElement>('devices-refresh'),
   feed: $('feed'),
+  drawer: $('drawer'),
   themePicker: $('theme-picker'),
   photoInput: $<HTMLInputElement>('photo-input'),
 };
 
 let orbResetTimer: ReturnType<typeof setTimeout> | undefined;
 let listening = false;
+let drawerTimer: ReturnType<typeof setTimeout> | undefined;
 let themeState = { selected: '', hasPhoto: false };
 
 export function bind(handlers: UiHandlers): void {
+  bindDrawer();
   el.loginBtn.addEventListener('click', handlers.onLogin);
   el.orb.addEventListener('click', handlers.onToggleListening);
   el.settingsBtn.addEventListener('click', () => el.settings.showModal());
@@ -86,6 +88,38 @@ export function bind(handlers: UiHandlers): void {
   document.querySelectorAll<HTMLButtonElement>('[data-action]').forEach((button) => {
     button.addEventListener('click', () => handlers.onAction(button.dataset.action as Command));
   });
+}
+
+const DRAWER_TOUCH_MS = 6000;
+
+/**
+ * Lo de abajo del orbe está escondido: con mouse aparece al pasar por encima (CSS :hover).
+ * Con el dedo no hay hover, así que el primer toque solo lo muestra (sin activar el botón
+ * que esté debajo) y se vuelve a esconder unos segundos después del último toque.
+ */
+function bindDrawer(): void {
+  let revealing = false;
+  el.drawer.addEventListener(
+    'pointerdown',
+    (event) => {
+      if (event.pointerType === 'mouse') return;
+      revealing = !el.drawer.classList.contains('is-open');
+      el.drawer.classList.add('is-open');
+      clearTimeout(drawerTimer);
+      drawerTimer = setTimeout(() => el.drawer.classList.remove('is-open'), DRAWER_TOUCH_MS);
+    },
+    true,
+  );
+  el.drawer.addEventListener(
+    'click',
+    (event) => {
+      if (!revealing) return;
+      revealing = false;
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    true,
+  );
 }
 
 export function showLogin(error = ''): void {
@@ -131,7 +165,6 @@ export function setListening(on: boolean): void {
   listening = on;
   el.orb.setAttribute('aria-pressed', String(on));
   el.orb.setAttribute('aria-label', on ? 'Dejar de escuchar' : 'Escuchar');
-  el.status.textContent = on ? 'Te escucho… empezá con «música»' : '';
   setOrb(on ? 'listening' : 'idle');
 }
 

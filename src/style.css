@@ -263,12 +263,6 @@ svg {
   pointer-events: none;
 }
 
-.orb-core svg {
-  width: 34%;
-  height: 34%;
-  filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.3));
-}
-
 .orb-ring {
   position: absolute;
   inset: 14%;
@@ -302,10 +296,6 @@ svg {
     radial-gradient(circle at 50% 50%, transparent 52%, rgb(0 0 0 / 0.15) 53%),
     conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent));
   animation: spin 0.9s linear infinite;
-}
-
-.orb[data-state='working'] .orb-core svg {
-  animation: spin 0.9s linear infinite reverse;
 }
 
 .orb[data-state='ok'] {
@@ -403,12 +393,6 @@ svg {
   }
 }
 
-.status {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
 .reply {
   min-height: 2.2em;
   margin: 10px 0 0;
@@ -446,6 +430,52 @@ svg {
   background: color-mix(in srgb, var(--error) 14%, transparent);
   color: var(--text);
   font-size: 0.9rem;
+}
+
+/* Panel bajo el orbe: escondido y difuminado hasta pasar el mouse (o tocarlo en el celular). */
+.drawer > * {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(18px) scale(0.97);
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease,
+    transform 0.45s ease;
+  /* Al irse el mouse espera un poco, así no parpadea si sale un instante. */
+  transition-delay: 0.5s;
+}
+
+.drawer:hover > *,
+.drawer:focus-within > *,
+.drawer.is-open > * {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: calc(var(--i, 0) * 60ms);
+}
+
+.drawer > :nth-child(2) {
+  --i: 1;
+}
+
+.drawer > :nth-child(3) {
+  --i: 2;
+}
+
+.drawer > :nth-child(4) {
+  --i: 3;
+}
+
+.drawer > :nth-child(5) {
+  --i: 4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer > * {
+    filter: none;
+    transform: none;
+  }
 }
 
 /* Tarjetas */
