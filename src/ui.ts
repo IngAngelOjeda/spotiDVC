@@ -47,18 +47,16 @@ const el = {
   deviceSelect: $<HTMLSelectElement>('device-select'),
   devicesRefresh: $<HTMLButtonElement>('devices-refresh'),
   feed: $('feed'),
-  drawer: $('drawer'),
   themePicker: $('theme-picker'),
   photoInput: $<HTMLInputElement>('photo-input'),
 };
 
 let orbResetTimer: ReturnType<typeof setTimeout> | undefined;
 let listening = false;
-let drawerTimer: ReturnType<typeof setTimeout> | undefined;
 let themeState = { selected: '', hasPhoto: false };
 
 export function bind(handlers: UiHandlers): void {
-  bindDrawer();
+  document.querySelectorAll<HTMLElement>('.reveal').forEach(bindReveal);
   el.loginBtn.addEventListener('click', handlers.onLogin);
   el.orb.addEventListener('click', handlers.onToggleListening);
   el.settingsBtn.addEventListener('click', () => el.settings.showModal());
@@ -90,27 +88,28 @@ export function bind(handlers: UiHandlers): void {
   });
 }
 
-const DRAWER_TOUCH_MS = 6000;
+const REVEAL_TOUCH_MS = 6000;
 
 /**
- * Lo de abajo del orbe está escondido: con mouse aparece al pasar por encima (CSS :hover).
- * Con el dedo no hay hover, así que el primer toque solo lo muestra (sin activar el botón
- * que esté debajo) y se vuelve a esconder unos segundos después del último toque.
+ * La barra de arriba y lo de abajo del orbe están escondidos: con mouse aparecen al pasar por
+ * encima (CSS :hover). Con el dedo no hay hover, así que el primer toque solo los muestra (sin
+ * activar el botón que esté debajo) y se vuelven a esconder unos segundos después del último toque.
  */
-function bindDrawer(): void {
+function bindReveal(element: HTMLElement): void {
   let revealing = false;
-  el.drawer.addEventListener(
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  element.addEventListener(
     'pointerdown',
     (event) => {
       if (event.pointerType === 'mouse') return;
-      revealing = !el.drawer.classList.contains('is-open');
-      el.drawer.classList.add('is-open');
-      clearTimeout(drawerTimer);
-      drawerTimer = setTimeout(() => el.drawer.classList.remove('is-open'), DRAWER_TOUCH_MS);
+      revealing = !element.classList.contains('is-open');
+      element.classList.add('is-open');
+      clearTimeout(timer);
+      timer = setTimeout(() => element.classList.remove('is-open'), REVEAL_TOUCH_MS);
     },
     true,
   );
-  el.drawer.addEventListener(
+  element.addEventListener(
     'click',
     (event) => {
       if (!revealing) return;
@@ -185,6 +184,26 @@ export function showSpeechWarning(text: string): void {
 /** Lo último que reconoció el micrófono, aunque no sea un comando. */
 export function showHeard(text: string): void {
   el.heard.textContent = text ? `«${text}»` : '';
+  if (text) flash(el.heard, HEARD_MS);
+}
+
+const HEARD_MS = 3000;
+const REPLY_MS: Record<ReplyKind, number> = { ok: 2500, info: 4000, error: 6000 };
+const flashTimers = new WeakMap<HTMLElement, ReturnType<typeof setTimeout>>();
+
+/** Muestra el texto con el efecto de entrada y lo vuelve a esconder (difuminándose) después de `ms`. */
+function flash(element: HTMLElement, ms: number): void {
+  clearTimeout(flashTimers.get(element));
+  // Arranca escondido sin transición, así cada mensaje nuevo vuelve a entrar con el efecto.
+  element.style.transition = 'none';
+  element.classList.remove('is-shown');
+  void element.offsetWidth;
+  element.style.transition = '';
+  element.classList.add('is-shown');
+  flashTimers.set(
+    element,
+    setTimeout(() => element.classList.remove('is-shown'), ms),
+  );
 }
 
 /** Mensaje del usuario en la conversación. */
@@ -196,9 +215,7 @@ export function say(text: string): void {
 export function reply(text: string, kind: ReplyKind = 'ok'): void {
   el.reply.textContent = text;
   el.reply.dataset.kind = kind;
-  el.reply.classList.remove('pop');
-  void el.reply.offsetWidth; // reinicia la animación
-  el.reply.classList.add('pop');
+  flash(el.reply, REPLY_MS[kind]);
   addBubble('agent', text, kind);
   if (kind !== 'info') setOrb(kind === 'ok' ? 'ok' : 'error');
 }

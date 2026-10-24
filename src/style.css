@@ -164,15 +164,24 @@ svg {
 .app {
   max-width: 520px;
   margin: 0 auto;
-  padding: max(12px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  padding: 0 16px max(24px, env(safe-area-inset-bottom));
 }
 
 /* Barra superior */
+/* Flota sobre la pantalla para no correr el orbe del centro. */
 .topbar {
+  --reveal-y: -14px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 48px;
+  width: min(100%, 520px);
+  height: calc(60px + env(safe-area-inset-top));
+  padding: env(safe-area-inset-top) 16px 0;
+  transform: translateX(-50%);
 }
 
 .brand {
@@ -207,12 +216,24 @@ svg {
 }
 
 /* Orbe del agente */
+/* Ocupa toda la pantalla con el orbe en el centro exacto; los textos cuelgan debajo sin moverlo. */
 .stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 0 8px;
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 100svh;
   text-align: center;
+}
+
+.stage .orb {
+  margin: 0;
+}
+
+.stage-text {
+  position: absolute;
+  top: calc(50% + min(56vw, 210px) * 0.72);
+  right: 0;
+  left: 0;
 }
 
 .orb {
@@ -407,8 +428,24 @@ svg {
   letter-spacing: -0.01em;
 }
 
-.reply.pop {
-  animation: pop 0.35s ease;
+/* Respuesta y texto reconocido: entran con efecto y se desvanecen solos (ver flash en ui.ts). */
+.reply,
+.heard {
+  opacity: 0;
+  filter: blur(8px);
+  transform: translateY(10px) scale(0.97);
+  transition:
+    opacity 0.45s ease,
+    filter 0.45s ease,
+    transform 0.45s ease;
+}
+
+.reply.is-shown,
+.heard.is-shown {
+  opacity: 1;
+  filter: none;
+  transform: none;
+  transition-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .reply[data-kind='error'] {
@@ -438,11 +475,11 @@ svg {
   font-size: 0.9rem;
 }
 
-/* Panel bajo el orbe: escondido y difuminado hasta pasar el mouse (o tocarlo en el celular). */
-.drawer > * {
+/* Barra de arriba y panel bajo el orbe: escondidos y difuminados hasta pasar el mouse (o tocarlos en el celular). */
+.reveal > * {
   opacity: 0;
   filter: blur(8px);
-  transform: translateY(18px) scale(0.97);
+  transform: translateY(var(--reveal-y, 18px)) scale(0.97);
   transition:
     opacity 0.45s ease,
     filter 0.45s ease,
@@ -451,9 +488,9 @@ svg {
   transition-delay: 0.5s;
 }
 
-.drawer:hover > *,
-.drawer:focus-within > *,
-.drawer.is-open > * {
+.reveal:hover > *,
+.reveal:focus-within > *,
+.reveal.is-open > * {
   opacity: 1;
   filter: none;
   transform: none;
@@ -461,24 +498,24 @@ svg {
   transition-delay: calc(var(--i, 0) * 60ms);
 }
 
-.drawer > :nth-child(2) {
+.reveal > :nth-child(2) {
   --i: 1;
 }
 
-.drawer > :nth-child(3) {
+.reveal > :nth-child(3) {
   --i: 2;
 }
 
-.drawer > :nth-child(4) {
+.reveal > :nth-child(4) {
   --i: 3;
 }
 
-.drawer > :nth-child(5) {
+.reveal > :nth-child(5) {
   --i: 4;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawer > * {
+  .reveal > * {
     filter: none;
     transform: none;
   }
@@ -744,7 +781,7 @@ select {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-top: 8vh;
+  padding-top: calc(8vh + 60px);
   text-align: center;
 }
 
